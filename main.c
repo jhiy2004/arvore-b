@@ -255,23 +255,24 @@ void readTree(char *name, BTree **dest){
 	fclose(file);
 }
 
-/*
-BTreeNode* search(BTreeNode* root, int elem){
-	int i = 1;
+char* search(BTreeNode* root, int elem, int *pos){
+	int i = 0;
 	BTreeNode *child = NULL;
-	while(i <= root->n && elem > root->keys[i]){
+	while(i < root->n && elem > root->keys[i]){
 		i++;
 	}
 	if(i <= root->n && elem == root->keys[i]){
-		return root;
+		char* result = (char*)malloc(sizeof(char)*(FILENAME_SIZE+NODEPATH_LEN+1));
+		strcpy(result, root->filename);
+		*pos = i;
+		return result;
 	}else if(root->leaf == 1){
 		return NULL;
 	}else{
-		diskRead(root->children[i], child);	
+		diskRead(root->children[i], &child);	
 	}
-	return search(child, elem);
+	return search(child, elem, pos);
 }
-*/
 
 void splitChild(BTreeNode* x, int i){
 	BTreeNode* y = NULL;
@@ -419,7 +420,7 @@ void delete(BTreeNode* root, int elem){
 		if(root->leaf == 1){
 			if(root->n-1 >= t-1){
 				//Case 1
-				for(int j=i; j < t;j++){
+				for(int j=i; j < (root->n)-1;j++){
 					root->keys[j] = root->keys[j+1];
 				}
 				(root->n)--;
@@ -501,37 +502,6 @@ void delete(BTreeNode* root, int elem){
 					(leftChild->n)++;
 
 					root->keys[i-1] = num;
-
-					printf("ROOT[%d]: [", root->n);
-					for(int j=0; j < root->n; j++){
-						printf("%d,", root->keys[j]);
-					}
-					printf("]\n");
-
-					printf("LEFTSIB[%d]: [", leftSib->n);
-					for(int j=0; j < leftSib->n; j++){
-						printf("%d,", leftSib->keys[j]);
-					}
-					printf("]\n");
-
-					printf("CHILDS_LEFTSIB[%d]: [", (leftSib->n)+1);
-					for(int j=0; j < (leftSib->n)+1; j++){
-						printf("%s,", leftSib->children[j]);
-					}
-					printf("]\n");
-
-					printf("CHILD[%d]: [", leftChild->n);
-					for(int j=0; j < leftChild->n; j++){
-						printf("%d,", leftChild->keys[j]);
-					}
-					printf("]\n");
-
-					printf("CHILDS_CHILD[%d]: [", (leftChild->n)+1);
-					for(int j=0; j < (leftChild->n)+1; j++){
-						printf("%s,", leftChild->children[j]);
-					}
-					printf("]\n");
-
 				}
 			}
 
@@ -564,44 +534,14 @@ void delete(BTreeNode* root, int elem){
 					//Sobe o número coletado do irmão da direita para o pai
 					root->keys[i] = num;
 
-					printf("ROOT[%d]: [", root->n);
-					for(int j=0; j < root->n; j++){
-						printf("%d,", root->keys[j]);
-					}
-					printf("]\n");
-
-					printf("RIGHTSIB[%d]: [", rightSib->n);
-					for(int j=0; j < rightSib->n; j++){
-						printf("%d,", rightSib->keys[j]);
-					}
-					printf("]\n");
-
-					printf("CHILDS_RIGHTSIB[%d]: [", (rightSib->n)+1);
-					for(int j=0; j < (rightSib->n)+1; j++){
-						printf("%s,", rightSib->children[j]);
-					}
-					printf("]\n");
-
-					printf("CHILD[%d]: [", leftChild->n);
-					for(int j=0; j < leftChild->n; j++){
-						printf("%d,", leftChild->keys[j]);
-					}
-					printf("]\n");
-
-					printf("CHILDS_CHILD[%d]: [", (leftChild->n)+1);
-					for(int j=0; j < (leftChild->n)+1; j++){
-						printf("%s,", leftChild->children[j]);
-					}
-					printf("]\n");
 				}
 			}
 
 			if(flag == 0){
-				printf("b\n");
 				if(i+1 <= root->n){
+					printf("b\n");
 					//Utiliza chave na posicao i da raiz como mediana do filho da esquerda
 					leftChild->keys[t-1] = root->keys[i];
-					(root->n)--;
 
 					//Reorganiza vetor de chaves do nó
 					for(int j=i; j < (root->n)-1; j++){
@@ -609,9 +549,10 @@ void delete(BTreeNode* root, int elem){
 					}
 					
 					//Reorganiza vetor de filhos do nó
-					for(int j=i; j < (root->n); j++){
+					for(int j=i+1; j < (root->n); j++){
 						strcpy(root->children[j],root->children[j+1]);
 					}
+					(root->n)--;
 
 					//Concatena vetor de chaves do ńo filho da esquerda com o seu irmão da direita
 					for(int j=0; j < t-1; j++){
@@ -624,9 +565,9 @@ void delete(BTreeNode* root, int elem){
 						strcpy(leftChild->children[j+t],rightSib->children[j]);
 					}
 				}else{
+					printf("b\n");
 					//Utiliza chave na posicao i da raiz como mediana do filho da esquerda
 					leftChild->keys[t-1] = root->keys[i-1];
-					(root->n)--;
 
 					//Reorganiza vetor de chaves do nó
 					for(int j=i; j < (root->n)-1; j++){
@@ -637,6 +578,7 @@ void delete(BTreeNode* root, int elem){
 					for(int j=i; j < root->n; j++){
 						strcpy(root->children[j],root->children[j+1]);
 					}
+					(root->n)--;
 
 					//Reorganiza os elementos existentes do vetor para depois da mediana
 					for(int j=0; j < t-1; j++){
@@ -659,30 +601,6 @@ void delete(BTreeNode* root, int elem){
 						strcpy(leftChild->children[j],leftSib->children[j]);
 					}
 				}
-				printf("ROOT[%d]: [", root->n);
-				for(int j=0; j < root->n; j++){
-					printf("%d,", root->keys[j]);
-				}
-				printf("]\n");
-
-				printf("CHILDS_ROOT[%d]: [", (root->n)+1);
-				for(int j=0; j < (root->n)+1; j++){
-					printf("%s,", root->children[j]);
-				}
-				printf("]\n");
-
-				printf("LEFTCHILD[%d]: [", leftChild->n);
-				for(int j=0; j < leftChild->n; j++){
-					printf("%d,", leftChild->keys[j]);
-				}
-				printf("]\n");
-
-				printf("CHILDS_LEFT[%d]: [", (leftChild->n)+1);
-				for(int j=0; j < (leftChild->n)+1; j++){
-					printf("%s,", leftChild->children[j]);
-				}
-				printf("]\n");
-
 			}
 			diskWrite(root);
 			diskWrite(leftChild);
@@ -765,7 +683,7 @@ void imprimirArvoreB(BTreeNode* root, int nivel) {
     if (root != NULL) {
         int i;
         if (!root->leaf) {
-			diskRead(root->children[i], &child);
+			diskRead(root->children[root->n], &child);
             imprimirArvoreB(child, nivel + 1);
         }
         for (i = root->n - 1; i >= 0; i--) {
@@ -879,13 +797,34 @@ int menu_principal(){
 int main(int argc, char* argv[]){
 	int opc=0;
 	int key=0;
+	int pos=0;
 	BTreeNode* root = NULL;
 	BTree* tree = NULL;
 	char* filename = NULL;
+	char* searchResult = NULL;
 
 	srand(time(NULL));
 
-	/*
+	if(argc != 1){
+		if(strcmp(argv[1], "create") == 0){
+			t = 3;
+			testeCriarArvore(&root);
+
+			tree = createBTree(t, root->filename);
+			strcpy(tree->root, root->filename);
+			writeTree(tree);
+			printf("Tree name: %s\n", tree->filename);
+			return 0;
+		}
+		if(strcmp(argv[1], "print") == 0){
+			printTree(root);
+		}
+		if(strcmp(argv[1], "del") == 0){
+			deleteCLRS(&root, atoi(argv[3]));
+			printf("Raiz: %s\n", root->filename);
+		}
+	}
+
 	opc = menu_inicial();
 	switch(opc){
 		case 1:
@@ -919,7 +858,7 @@ int main(int argc, char* argv[]){
 		switch(opc){
 			case 1:
 				// Imprimir árvore
-				printTree(root);
+				imprimirArvoreB(root, 0);
 				break;
 			case 2:
 				// Inserir na árvore
@@ -937,7 +876,14 @@ int main(int argc, char* argv[]){
 				// Buscar na árvore
 				printf("Search a key: ");
 				scanf("%d", &key);
-				//bsearch(&root, key);
+				searchResult =  search(root, key, &pos);
+				if(searchResult != NULL){
+					printf("%d Found at file %s at position %d\n", key, searchResult, pos);
+
+					//Liberar a memória da busca
+					free(searchResult);
+					searchResult = NULL;
+				}
 				break;
 			case 5:
 				// Sair do programa
@@ -945,22 +891,6 @@ int main(int argc, char* argv[]){
 				writeTree(tree);
 				return 0;
 				break;
-		}
-	}
-	*/
-	t=3;
-	BTreeNode* root=NULL;
-
-	if(argc == 1){
-		testeCriarArvore(&root);
-	}else{
-		testeLerArvore(&root, argv[2]);
-		if(strcmp(argv[1], "print") == 0){
-			printTree(root);
-		}
-		if(strcmp(argv[1], "del") == 0){
-			deleteCLRS(&root, atoi(argv[3]));
-			printf("Raiz: %s\n", root->filename);
 		}
 	}
 
