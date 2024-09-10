@@ -4,11 +4,14 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define FILENAME_SIZE 33
+#define FILENAME_SIZE 25
+#define NODEPATH_LEN 8
+#define TREEPATH_LEN 13
 
-int t;
-const char *path = "./files/";
-const char *extension = ".bin";
+int t = 0;
+char *nodesPath = "./files/";
+char *treesPath = "./files/trees/";
+char *extension = ".bin";
 
 typedef struct BTreeNode{
 	char *filename;
@@ -18,16 +21,27 @@ typedef struct BTreeNode{
 	int leaf;
 } BTreeNode;
 
-char* generateRandomFilename(){
-	srand(time(NULL));
-	char *result = (char*) malloc(sizeof(char)*FILENAME_SIZE);
-	char filename[25];
+typedef struct BTree{
+	char *filename;
+	char *root;
+	int t;
+} BTree;
+
+char* generateRandomFilename(char* path){
+	int pathLen=0;
+
+	while(path[pathLen] != '\0'){
+		pathLen++;
+	}
+
+	char *result = (char*) malloc(sizeof(char)*(FILENAME_SIZE+pathLen+1));
+	char filename[FILENAME_SIZE];
 
 	strcpy(result, path);
 	
 	DIR *d;
 	struct dirent *dir;
-	d = opendir("./files/");
+	d = opendir(path);
 
 	while(1){
 		for(int i=0; i < 20; i++){
@@ -65,7 +79,7 @@ char* generateRandomFilename(){
 	}
 
 	strcat(result, filename);
-	result[FILENAME_SIZE-1] = '\0';
+	result[FILENAME_SIZE+pathLen-1] = '\0';
 
 	return result;
 }
@@ -90,13 +104,25 @@ BTreeNode* createNode(int T, int leaf){
 	node->keys = (int*)malloc((2*T - 1) * sizeof(int));
 	node->children = (char**) malloc((2*T) * sizeof(char*));
 	node->leaf = leaf;
-	node->filename = generateRandomFilename();
+	node->filename = generateRandomFilename(nodesPath);
 
 	for(int i=0; i < 2*T; i++){
-		node->children[i] = (char*)malloc(FILENAME_SIZE*sizeof(char));
+		node->children[i] = (char*)malloc((FILENAME_SIZE+NODEPATH_LEN+1)*sizeof(char));
 		strcpy(node->children[i], "");
 	}
 	return node;
+}
+
+BTree* createBTree(int T, char* rootFilename){
+	BTree* tree = (BTree*) malloc(sizeof(BTree));
+
+	tree->filename = generateRandomFilename(treesPath);
+	tree->root = (char*) malloc(sizeof(char)*(FILENAME_SIZE+NODEPATH_LEN+1));
+	tree->t = T;
+
+	strcpy(tree->root, rootFilename);
+
+	return tree;
 }
 
 int diskWrite(BTreeNode* node){
@@ -114,7 +140,7 @@ int diskWrite(BTreeNode* node){
 	fwrite(&node->n, sizeof(int), 1, file);
 	
 	//Grava o nome do arquivo no arquivo
-	for(int i=0; i < FILENAME_SIZE; i++){
+	for(int i=0; i < FILENAME_SIZE+NODEPATH_LEN+1; i++){
 		fwrite(&node->filename[i], sizeof(char), 1, file);
 	}
 
@@ -125,13 +151,42 @@ int diskWrite(BTreeNode* node){
 
 	//Grava os nomes dos arquivos filhos no arquivo
 	for(int i=0; i < 2*t; i++){
-		for(int j=0; j < FILENAME_SIZE; j++){
+		for(int j=0; j < FILENAME_SIZE+NODEPATH_LEN+1; j++){
 			fwrite(&node->children[i][j], sizeof(char), 1, file);
 		}
 	}
 
 	//Grava se o nó é folha ou não no arquivo
 	fwrite(&node->leaf, sizeof(int), 1, file);
+
+	fclose(file);
+
+	return 1;
+}
+
+int writeTree(BTree* tree){
+	if(tree == NULL){
+		return 0;
+	}
+
+	FILE* file = fopen(tree->filename, "wb+");
+	if(file == NULL){
+		printf("ERRO\n");
+		return 0;
+	}
+
+	//Grava o nome do arquivo da árvore
+	for(int i=0; i < FILENAME_SIZE+TREEPATH_LEN+1; i++){
+		fwrite(&tree->filename[i], sizeof(char), 1, file);
+	}
+
+	//Grava o nome do arquivo raiz
+	for(int i=0; i < FILENAME_SIZE+NODEPATH_LEN+1; i++){
+		fwrite(&tree->root[i], sizeof(char), 1, file);
+	}
+
+	//Grava o t da árvore
+	fwrite(&tree->t, sizeof(int), 1, file);
 
 	fclose(file);
 
@@ -152,7 +207,7 @@ void diskRead(char *name, BTreeNode **dest){
 	fread(&(*dest)->n, sizeof(int), 1, file);
 	
 	//Lê o nome do arquivo no nó
-	for(int i=0; i < FILENAME_SIZE; i++){
+	for(int i=0; i < FILENAME_SIZE+NODEPATH_LEN+1; i++){
 		fread(&(*dest)->filename[i], sizeof(char), 1, file);
 	}
 
@@ -163,13 +218,39 @@ void diskRead(char *name, BTreeNode **dest){
 
 	//Lê os nomes dos arquivos filhos no nó
 	for(int i=0; i < 2*t; i++){
-		for(int j=0; j < FILENAME_SIZE; j++){
+		for(int j=0; j < FILENAME_SIZE+NODEPATH_LEN+1; j++){
 			fread(&(*dest)->children[i][j], sizeof(char), 1, file);
 		}
 	}
 
 	//Lê se o nó é folha ou não no nó
 	fread(&(*dest)->leaf, sizeof(int), 1, file);
+
+	fclose(file);
+}
+
+void readTree(char *name, BTree **dest){
+	FILE* file = fopen(name, "rb");
+
+	if(file == NULL){
+		printf("[ERRO]\n");
+		return;
+	}
+
+	*dest = createBTree(t, "");
+
+	//Lê o nome do arquivo na árvore
+	for(int i=0; i < FILENAME_SIZE+TREEPATH_LEN+1; i++){
+		fread(&(*dest)->filename[i], sizeof(char), 1, file);
+	}
+
+	//Lê o nome do arquivo raiz da árvore
+	for(int i=0; i < FILENAME_SIZE+NODEPATH_LEN+1; i++){
+		fread(&(*dest)->root[i], sizeof(char), 1, file);
+	}
+
+	//Lê o valor de t da árvore
+	fread(&(*dest)->t, sizeof(int), 1, file);
 
 	fclose(file);
 }
@@ -193,13 +274,11 @@ BTreeNode* search(BTreeNode* root, int elem){
 */
 
 void splitChild(BTreeNode* x, int i){
-	printf("Split!\n");
 	BTreeNode* y = NULL;
 	BTreeNode* z = NULL;
 
 	diskRead(x->children[i], &y);
 
-	sleep(1);
 	z = createNode(t, y->leaf);
 
 	z->n = t-1;
@@ -223,24 +302,6 @@ void splitChild(BTreeNode* x, int i){
 	}
 	x->keys[i] = y->keys[t-1];
 	x->n = x->n+1;
-
-	printf("X[%d]: [", x->n);
-	for(int j=0; j < x->n; j++){
-		printf("%d,", x->keys[j]);
-	}
-	printf("]\n");
-
-	printf("Y[%d]: [", y->n);
-	for(int j=0; j < y->n; j++){
-		printf("%d,", y->keys[j]);
-	}
-	printf("]\n");
-	
-	printf("Z[%d]: [", z->n);
-	for(int j=0; j < z->n; j++){
-		printf("%d,", z->keys[j]);
-	}
-	printf("]\n");
 
 	diskWrite(y);
 	diskWrite(z);
@@ -285,7 +346,6 @@ void insertNotFull(BTreeNode* root, int elem){
 
 void insertCLRS(BTreeNode** root, int elem){
 	if ((*root)->n == 2*t - 1){
-		sleep(1);
 		BTreeNode* s = createNode(t, 0);
 		strcpy(s->children[0],(*root)->filename);
 		splitChild(s, 0);
@@ -350,12 +410,6 @@ void delete(BTreeNode* root, int elem){
 	BTreeNode* rightChild = NULL;
 	BTreeNode* leftSib = NULL;
 	BTreeNode* rightSib = NULL;
-
-	printf("ROOT[%d]: [", root->n);
-	for(int j=0; j < root->n; j++){
-		printf("%d,", root->keys[j]);
-	}
-	printf("]\n");
 
 	while(i < root->n && root->keys[i] < elem){
 		i++;
@@ -656,7 +710,78 @@ void deleteCLRS(BTreeNode** root, int elem){
 	}
 }
 
+char* chooseTree(){
+	char* result = (char*)malloc(sizeof(char)*(FILENAME_SIZE+TREEPATH_LEN+2));
+	char filename[FILENAME_SIZE+1];
 
+	strcpy(result, treesPath);
+
+	int i=0, found=0;
+	DIR *d;
+	struct dirent *dir;
+	d = opendir(treesPath);
+
+	while(found == 0){
+		if (d) {
+			while ((dir = readdir(d)) != NULL) {
+				printf("%s\n", dir->d_name);
+			}
+		}
+		printf("Enter the filename: ");
+		getchar();
+		fgets(filename, FILENAME_SIZE+1, stdin);
+
+		while(filename[i] != '\n'){
+			i++;
+		}
+		filename[i] = '\0';
+
+		printf("%s\n", filename);
+
+		rewinddir(d);
+		if (d) {
+			while ((dir = readdir(d)) != NULL) {
+				if(strcmp(filename, dir->d_name) == 0){
+					found=1;
+					break;
+				}
+			}
+		}
+		if(found == 0){
+			rewinddir(d);
+			printf("Not found\n");
+		}
+	}
+
+	strcat(result, filename);
+	
+	closedir(d);
+	return result;
+}
+
+void imprimirArvoreB(BTreeNode* root, int nivel) {
+	BTreeNode* child = NULL;
+
+    if (root != NULL) {
+        int i;
+        if (!root->leaf) {
+			diskRead(root->children[i], &child);
+            imprimirArvoreB(child, nivel + 1);
+        }
+        for (i = root->n - 1; i >= 0; i--) {
+            for (int j = 0; j < nivel; j++) {
+                printf("    ");  // Indentação para mostrar a profundidade
+            }
+            printf("%d\n", root->keys[i]);
+
+            if (!root->leaf) {
+				diskRead(root->children[i], &child);
+                imprimirArvoreB(child, nivel + 1);
+            }
+        }
+		freeNode(child);
+    }
+}
 BTreeNode* printTree(BTreeNode* root){
 	printf("----------------\n");
 	printf("Size: %d\n", root->n);
@@ -720,7 +845,109 @@ void testeLerArvore(BTreeNode** x, char* str){
 	diskRead(str, x);
 }
 
+int menu_inicial(){
+	int opc=0;
+	do{
+		printf("========================== B-Tree ==========================\n");
+		printf("= 1 - Create new tree                                      =\n");
+		printf("= 2 - Open a existing tree                                 =\n");
+		printf("= 3 - Exit                                                 =\n");
+		printf("============================================================\n");
+		printf("Enter your option: ");
+		scanf("%d", &opc);
+	}while(opc < 1 || opc > 3);
+	
+	return opc;
+}
+
+int menu_principal(){
+	int opc = 0;
+	do{
+		printf("========================== B-Tree ==========================\n");
+		printf("= 1 - Print B-Tree                                         =\n");
+		printf("= 2 - Insert element                                       =\n");
+		printf("= 3 - Delete element                                       =\n");
+		printf("= 4 - Search element                                       =\n");
+		printf("= 5 - Exit                                                 =\n");
+		printf("============================================================\n");
+		printf("Enter your option: ");
+		scanf("%d",&opc);
+	}while(opc < 1 || opc > 5);
+
+	return opc;
+}
 int main(int argc, char* argv[]){
+	int opc=0;
+	int key=0;
+	BTreeNode* root = NULL;
+	BTree* tree = NULL;
+	char* filename = NULL;
+
+	srand(time(NULL));
+
+	/*
+	opc = menu_inicial();
+	switch(opc){
+		case 1:
+			//Criar nova árvore
+			do{
+				printf("Enter the value of t: ");
+				scanf("%d", &t);
+			}while(t < 2);
+
+			root = createNode(t, 1);
+			tree = createBTree(t, root->filename);
+
+			break;
+		case 2:
+			//Abrir árvore existente
+			filename = chooseTree();
+			printf("%s\n", filename);
+			readTree(filename, &tree);
+			t = tree->t;
+
+			diskRead(tree->root, &root);
+
+			break;
+		case 3:
+			return 0;
+			break;
+	}
+
+	while(1){
+		opc = menu_principal();
+		switch(opc){
+			case 1:
+				// Imprimir árvore
+				printTree(root);
+				break;
+			case 2:
+				// Inserir na árvore
+				printf("Insert a key: ");
+				scanf("%d", &key);
+				insertCLRS(&root, key);
+				break;
+			case 3:
+				// Remover da árvore
+				printf("Delete a key: ");
+				scanf("%d", &key);
+				deleteCLRS(&root, key);
+				break;
+			case 4:
+				// Buscar na árvore
+				printf("Search a key: ");
+				scanf("%d", &key);
+				//bsearch(&root, key);
+				break;
+			case 5:
+				// Sair do programa
+				strcpy(tree->root, root->filename);
+				writeTree(tree);
+				return 0;
+				break;
+		}
+	}
+	*/
 	t=3;
 	BTreeNode* root=NULL;
 
