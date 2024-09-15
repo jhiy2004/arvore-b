@@ -459,12 +459,19 @@ void delete(BTreeNode* root, int elem){
 					diskWrite(root);
 				}else{
 					//Case 2c
+					//Adiciona a chave na mediana de leftChild
+					leftChild->keys[t-1] = root->keys[i];
 
 					//Concatenar vetor de chaves do ńo filho da esquerda com o da direita
 					for(int j=0; j < rightChild->n; j++){
-						leftChild->keys[(leftChild->n)+j] = rightChild->keys[j];
+						leftChild->keys[t+j] = rightChild->keys[j];
 					}
-					leftChild->n += rightChild->n;
+
+					//Concatena os filhos da direita no da esquerda
+					for(int j=0; j < rightChild->n+1; j++){
+						strcpy(leftChild->children[t+j],rightChild->children[j]);
+					}
+					leftChild->n = 2*t-1;
 
 					//Reorganizar o vetor de chaves do nó
 					for(int j=i; j < (root->n)-1; j++){
@@ -482,6 +489,7 @@ void delete(BTreeNode* root, int elem){
 						diskWrite(root);
 						diskWrite(leftChild);
 					}
+					delete(leftChild, elem);
 				}
 				freeNode(rightChild);
 			}
