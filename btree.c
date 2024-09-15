@@ -433,13 +433,11 @@ void delete(BTreeNode* root, int elem){
 
 	if(root->keys[i] == elem){
 		if(root->leaf == 1){
-			if(root->n-1 >= t-1){
-				//Case 1
-				for(int j=i; j < (root->n)-1;j++){
-					root->keys[j] = root->keys[j+1];
-				}
-				(root->n)--;
+			//Case 1
+			for(int j=i; j < (root->n)-1;j++){
+				root->keys[j] = root->keys[j+1];
 			}
+			(root->n)--;
 			diskWrite(root);
 		}else{
 			diskRead(root->children[i], &leftChild);
@@ -646,7 +644,8 @@ void deleteCLRS(BTreeNode** root, int elem){
 	delete(*root, elem);
 
 	//Troca o ponteiro da raiz da árvore caso após a remoção tenha ficado sem elementos;
-	if((*root)->n == 0){
+	if((*root)->n == 0 && strcmp((*root)->children[0], "") != 0){
+		printf("here\n");
 		BTreeNode *temp = *root;
 		diskRead((*root)->children[0], root);
 
