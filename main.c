@@ -23,6 +23,16 @@ int main(int argc, char* argv[]){
 			printf("Tree name: %s\n", tree->filename);
 			return 0;
 		}
+		else if (strcmp(argv[1], "test") == 0) {
+			t = 2;
+			runTestScript(&root);
+
+			tree = createBTree(t, root->filename);
+			strcpy(tree->root, root->filename);
+			writeTree(tree);
+			printf("Tree name: %s\n", tree->filename);
+			return 0;
+		}
 	}
 
 	opc = initialMenu();
