@@ -51,6 +51,7 @@ void deleteCLRS(BTreeNode** root, int elem);
 char* chooseTree();
 void printBTree(BTreeNode* root, int level);
 void createTreeTest(BTreeNode** x);
+void runTestScript(BTreeNode** x);
 int initialMenu();
 int mainMenu();
 

@@ -17,7 +17,7 @@ char* generateRandomFilename(char* path){
 	char filename[FILENAME_SIZE];
 
 	strcpy(result, path);
-	
+
 	//Abro o diretório do caminho que será armazenado o arquivo
 	DIR *d;
 	struct dirent *dir;
@@ -126,7 +126,7 @@ int diskWrite(BTreeNode* node){
 
 	//Grava o valor de n no arquivo
 	fwrite(&node->n, sizeof(int), 1, file);
-	
+
 	//Grava o nome do arquivo no arquivo
 	for(int i=0; i < FILENAME_SIZE+NODEPATH_LEN+1; i++){
 		fwrite(&node->filename[i], sizeof(char), 1, file);
@@ -193,9 +193,9 @@ void diskRead(char *name, BTreeNode **dest){
 
 	*dest = createNode(t, 0);
 
-	//Lê o valor de n no nó 
+	//Lê o valor de n no nó
 	fread(&(*dest)->n, sizeof(int), 1, file);
-	
+
 	//Lê o nome do arquivo no nó
 	for(int i=0; i < FILENAME_SIZE+NODEPATH_LEN+1; i++){
 		fread(&(*dest)->filename[i], sizeof(char), 1, file);
@@ -276,7 +276,7 @@ char* search(BTreeNode* root, int elem, int *pos){
 	}else if(root->leaf == 1){
 		return NULL;
 	}else{
-		diskRead(root->children[i], &child);	
+		diskRead(root->children[i], &child);
 	}
 	return search(child, elem, pos);
 }
@@ -344,7 +344,7 @@ void insertNotFull(BTreeNode* root, int elem){
 		i++;
 		BTreeNode* child = NULL;
 
-		diskRead(root->children[i], &child); 
+		diskRead(root->children[i], &child);
 		//Se o filho estiver cheio split o filho
 		if(child->n == 2*t-1){
 			splitChild(root, i);
@@ -354,7 +354,7 @@ void insertNotFull(BTreeNode* root, int elem){
 		}
 
 		freeNode(child);
-		diskRead(root->children[i], &child); 
+		diskRead(root->children[i], &child);
 
 		insertNotFull(child, elem);
 		freeNode(child);
@@ -402,7 +402,7 @@ int deleteSucessor(BTreeNode* root){
 	if(root->leaf == 1){
 		//Armazena em num o menor valor do vetor keys
 		num = root->keys[0];
-		
+
 		// Organiza o vetor
 		for(int i=0; i < (root->n)-1; i++){
 			root->keys[i] = root->keys[i+1];
@@ -477,7 +477,7 @@ void delete(BTreeNode* root, int elem){
 					}
 
 					(root->n)--;
-					
+
 					if(remove(rightChild->filename) == 0){
 						diskWrite(root);
 						diskWrite(leftChild);
@@ -566,7 +566,7 @@ void delete(BTreeNode* root, int elem){
 					for(int j=i; j < (root->n)-1; j++){
 						root->keys[j] = root->keys[j+1];
 					}
-					
+
 					//Reorganiza vetor de filhos do nó
 					for(int j=i+1; j < (root->n); j++){
 						strcpy(root->children[j],root->children[j+1]);
@@ -578,7 +578,7 @@ void delete(BTreeNode* root, int elem){
 						leftChild->keys[j+t] = rightSib->keys[j];
 					}
 					leftChild->n = 2*t-1;
-					
+
 					//Concatena vetor de filhos do ńo filho da esquerda com o seu irmão da direita
 					for(int j=0; j < t; j++){
 						strcpy(leftChild->children[j+t],rightSib->children[j]);
@@ -593,9 +593,9 @@ void delete(BTreeNode* root, int elem){
 					for(int j=i; j < (root->n)-1; j++){
 						root->keys[j] = root->keys[j+1];
 					}
-					
+
 					(root->n)--;
-					
+
 					//Reorganiza vetor de filhos do nó
 					strcpy(root->children[root->n], leftChild->filename);
 
@@ -609,7 +609,7 @@ void delete(BTreeNode* root, int elem){
 						leftChild->keys[j] = leftSib->keys[j];
 					}
 					leftChild->n = 2*t-1;
-					
+
 					//Reorganiza o vetor de filhos do nó
 					for(int j=0; j < t; j++){
 						strcpy(leftChild->children[j+t],leftChild->children[j]);
@@ -624,7 +624,7 @@ void delete(BTreeNode* root, int elem){
 			}
 			diskWrite(root);
 			diskWrite(leftChild);
-			
+
 			freeNode(rightSib);
 			freeNode(leftSib);
 		}
@@ -697,7 +697,7 @@ char* chooseTree(){
 	}
 
 	strcat(result, filename);
-	
+
 	closedir(d);
 	return result;
 }
@@ -756,6 +756,85 @@ void createTreeTest(BTreeNode** x){
 	printf("%s\n", (*x)->filename);
 }
 
+void runTestScript(BTreeNode** x){
+	*x = createNode(t, 1);
+    printf("\n========= INICIANDO TESTE - ARVORE B COM T = 2 =========\n\n");
+
+    printf("\n========= INSERINDO 25 =========\n");
+	insertCLRS(x, 25);
+	printBTree((*x), 0);
+    printf("\n========= INSERINDO 10 =========\n");
+	insertCLRS(x, 10);
+	printBTree((*x), 0);
+    printf("\n========= INSERINDO 30 =========\n");
+	insertCLRS(x, 30);
+	printBTree((*x), 0);
+    printf("\n========= INSERINDO 5 =========\n");
+	insertCLRS(x, 5);
+	printBTree((*x), 0);
+    printf("\n========= INSERINDO 15 =========\n");
+	insertCLRS(x, 15);
+	printBTree((*x), 0);
+    printf("\n========= INSERINDO 20 =========\n");
+	insertCLRS(x, 20);
+	printBTree((*x), 0);
+    printf("\n========= INSERINDO 1 =========\n");
+	insertCLRS(x, 1);
+	printBTree((*x), 0);
+    printf("\n========= INSERINDO 35 =========\n");
+	insertCLRS(x, 35);
+	printBTree((*x), 0);
+    printf("\n========= INSERINDO 40 =========\n");
+	insertCLRS(x, 40);
+	printBTree((*x), 0);
+    printf("\n========= INSERINDO 2 =========\n");
+	insertCLRS(x, 2);
+	printBTree((*x), 0);
+    printf("\n========= INSERINDO 26 =========\n");
+	insertCLRS(x, 26);
+	printBTree((*x), 0);
+    printf("\n========= INSERINDO 28 =========\n");
+	insertCLRS(x, 28);
+	printBTree((*x), 0);
+    printf("\n========= INSERINDO 11 =========\n");
+	insertCLRS(x, 11);
+	printBTree((*x), 0);
+    printf("\n========= INSERINDO 12 =========\n");
+	insertCLRS(x, 12);
+	printBTree((*x), 0);
+    printf("\n========= REMOVENDO 2 (caso 1)=========\n");
+	deleteCLRS(x, 2);
+	printBTree((*x), 0);
+    printf("\n========= REMOVENDO 35 (caso 2a) =========\n");
+	deleteCLRS(x, 35);
+	printBTree((*x), 0);
+    printf("\n========= REMOVENDO 25 (caso 2b) =========\n");
+	deleteCLRS(x, 25);
+	printBTree((*x), 0);
+    printf("\n========= REMOVENDO 30 (caso 2c) =========\n");
+	deleteCLRS(x, 30);
+	printBTree((*x), 0);
+    printf("\n========= REMOVENDO 20 (caso 3a) =========\n");
+	deleteCLRS(x, 20);
+	printBTree((*x), 0);
+    printf("\n========= REMOVENDO 15 (caso 3a) =========\n");
+	deleteCLRS(x, 15);
+	printBTree((*x), 0);
+    printf("\n========= REMOVENDO 1 (caso 1) =========\n");
+	deleteCLRS(x, 1);
+	printBTree((*x), 0);
+    printf("\n========= REMOVENDO 5 (caso 3b) =========\n");
+	deleteCLRS(x, 5);
+	printBTree((*x), 0);
+    printf("\n========= REMOVENDO 40 (caso 3b) =========\n");
+	deleteCLRS(x, 40);
+	printBTree((*x), 0);
+    printf("\n========= ENCERRANDO TESTE =========\n");
+
+	printf("\n");
+	printf("%s\n", (*x)->filename);
+}
+
 int initialMenu(){
 	int opc=0;
 	do{
@@ -767,7 +846,7 @@ int initialMenu(){
 		printf("Enter your option: ");
 		scanf("%d", &opc);
 	}while(opc < 1 || opc > 3);
-	
+
 	return opc;
 }
 
