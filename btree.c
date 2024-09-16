@@ -645,7 +645,6 @@ void deleteCLRS(BTreeNode** root, int elem){
 
 	//Troca o ponteiro da raiz da árvore caso após a remoção tenha ficado sem elementos;
 	if((*root)->n == 0 && strcmp((*root)->children[0], "") != 0){
-		printf("here\n");
 		BTreeNode *temp = *root;
 		diskRead((*root)->children[0], root);
 
